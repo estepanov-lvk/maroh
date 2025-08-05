@@ -1,0 +1,12 @@
+*.pyc
+experiment.log
+.idea/
+dte_stand/algorithm/mate/checkpoints/
+dte_stand/algorithm/mate/logs/
+# exclude result folders and files
+data_examples/*/exp_*
+flows_*.json
+ow_*.npy
+ow_*.csv
+*.png
+!.gitignore
