@@ -318,7 +318,13 @@ def plot_advanced(result_paths, exp_names, values, title, out_filename,
 
     if ylim != (None, None):
         ax.set_ylim(*ylim)
+    else:
+        # correcting ylims so that the legend likely won't overlap the plot
+        ylim_cur_0, ylim_cur_1 = ax.get_ylim()
+        ylim_cur_1 = ylim_cur_0 + (ylim_cur_1 - ylim_cur_0) * 1.5
+        ax.set_ylim([ylim_cur_0, ylim_cur_1])
     ylim_cur = ax.get_ylim()
+    height_cur = ylim_cur[1] - ylim_cur[0]
 
     phi_best_values = np.array(phi_best_values)
     phi_best_argsort = np.argsort(phi_best_values)
@@ -327,7 +333,7 @@ def plot_advanced(result_paths, exp_names, values, title, out_filename,
     cur_pos = 1
     text_y_thres = 0.024
     for i, phi_best in enumerate(phi_best_values_sort):
-        if i > 0 and (phi_best - phi_best_values_sort[i-1]) / (ylim_cur[1] - ylim_cur[0]) < text_y_thres:
+        if i > 0 and (phi_best - phi_best_values_sort[i-1]) / height_cur < text_y_thres:
             cur_pos = -cur_pos
         positions.append(cur_pos)
     positions = np.array(positions)
