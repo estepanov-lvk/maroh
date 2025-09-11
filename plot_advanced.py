@@ -3,8 +3,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from cycler import cycler # !pip install cycler
-import scienceplots # !pip install SciencePlots
+import scienceplots
 import json
 from collections import Counter, defaultdict
 import os
@@ -234,37 +233,17 @@ def get_config_value(exp_dir, key):
 
 def plot_advanced(result_paths, exp_names, values, title, out_filename,
     first_values=None, update_period={}, df_genetic=None, ylim=(None, None), n_episodes='max',
-    plot_period=100, best_phi_avg_period=2000):
+    plot_period=3000, best_phi_avg_period=2000):
     title_fontsize = 10
-    legend_fontsize = 8
-
-    colors = ['C0', 'C1', 'C2', 'C3', 'C4', 'C5', 'C0']
+    legend_fontsize = 9
 
     plt.style.use(["science", "grid"])
     matplotlib.rcParams['text.usetex'] = False
 
-    # sns.set_style("whitegrid")
-    # # stroke_color = "gray6"
-    # PROPS = {
-    #     'boxprops':{'facecolor':'none', 'edgecolor':'darkgray'},
-    #     'medianprops':{'color':'darkgray'},
-    #     'whiskerprops':{'color':'darkgray'},
-    #     'capprops':{'color':'darkgray'}
-    # }
+    markers = ['x', '.', 'v', '^', 'd']
+    colors = (matplotlib.rcParams['axes.prop_cycle'].by_key()['color'] * 4)[:len(markers)]
 
-    markercycle = cycler(marker=['+', 'x', 'd', '.', '*', 'v', '^', 'o'])
-    colorcycle = cycler(color=(matplotlib.rcParams['axes.prop_cycle'].by_key()['color'] * 4)[:len(markercycle)]) # default color cycle
-    # colorcycle = cycler(color=[f'C{i}' for i in range(10)])
-
-    use_marker = False
-
-    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(160/23, 4))
-    if use_marker:
-        ax.set_prop_cycle(colorcycle + markercycle)
-    else:
-        ax.set_prop_cycle(colorcycle)
-
-    # exp_name = exp_names[0]
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(160/23, 4), dpi=300)
 
     phi_ga = None
     if df_genetic is not None:
@@ -281,7 +260,7 @@ def plot_advanced(result_paths, exp_names, values, title, out_filename,
         n_episodes_display = min([len(values[i][params[0]]) for i in range(len(exp_names))])
     else:
         n_episodes_display = n_episodes
-    n_episodes_xlim = round(n_episodes_display*1.15/500)*500
+    n_episodes_xlim = round(n_episodes_display*1.28/500)*500
     if n_episodes_display < best_phi_avg_period:
         best_phi_avg_period = n_episodes_display // 5
 
@@ -290,6 +269,7 @@ def plot_advanced(result_paths, exp_names, values, title, out_filename,
         title = f"{exp_name}"
         y_orig = np.array(values[i][params[0]])
         y_orig = y_orig[:n_episodes_display]
+        xshift = (plot_period * i / len(exp_names) - plot_period * (len(exp_names)-1) / len(exp_names)) * 0.3
         phi_best = get_best_phi(y_orig, best_phi_avg_period)
         phi_best_values.append(phi_best)
         val1 = np.array(values[i]['message_iterations_done'])
@@ -309,31 +289,36 @@ def plot_advanced(result_paths, exp_names, values, title, out_filename,
         else:
             avg_msg_load_str = f" (comm: {avg_msg_load*100:.1f}%)"
 
-        y = get_averaged_values(y_orig, plot_period)
+        y = np.array(get_averaged_values(y_orig, plot_period))
         ymin, ymax = get_minmax_values(y_orig, plot_period)
+        ymin = np.array(ymin)
+        ymax = np.array(ymax)
         x = np.arange(0, plot_period*(len(y)+2), plot_period)[1:len(y)+1]
         alpha = 0.1 if len(exp_names) <= 2 else 0.07
-        ax.fill_between(x, ymin, ymax, alpha=alpha)
-        ax.plot(x, y, label=f"{exp_name}{avg_msg_load_str}")
-        # ax.plot(x[-1], y[-1], color=colors[i])
+        ax.errorbar(x+xshift, y, yerr=np.vstack((y - ymin, ymax - y)),
+                    marker=markers[i], color=colors[i],
+                    linewidth=1.33, label=f"{exp_name}{avg_msg_load_str}")
+        ax.plot(x+xshift, ymin, linestyle='dotted', color=colors[i], marker=markers[i], ms=5)
+        ax.plot(x+xshift, ymax, linestyle='dotted', color=colors[i], marker=markers[i], ms=5)
 
     ax.set_xlim(0, n_episodes_xlim)
     xlim = ax.get_xlim()
+    ylim_cur = ax.get_ylim()
+    height_cur = ylim_cur[1] - ylim_cur[0]
+
     if first_values is not None:
-        ax.hlines(first_values[0]["phi_values"][0], xlim[0], xlim[1], color='gray', linestyle='--', label="equal weights")
+        phi_eqw = first_values[0]["phi_values"][0]
+        ax.hlines(phi_eqw, xlim[0], xlim[1], color='gray', linestyle='--', label="equal weights")
+        ax.scatter(n_episodes_display*0.05, phi_eqw, marker="*", color='gray')
+        ax.text(n_episodes_display*0.06, phi_eqw + height_cur*0.01, f"{phi_eqw:.4f}", fontsize=8)
     if phi_ga is not None:
         ax.hlines(phi_ga, xlim[0], xlim[1], color='darkolivegreen', linestyle='-', label="genetic algorithm")
         ax.scatter(n_episodes_display*0.05, phi_ga, marker="*", color='darkolivegreen')
-        ax.text(n_episodes_display*0.06, phi_ga, f"{phi_ga:.4f}", fontsize=8)
+        ax.text(n_episodes_display*0.06, phi_ga + height_cur*0.01, f"{phi_ga:.4f}", fontsize=8)
 
     if ylim != (None, None):
         ax.set_ylim(*ylim)
     ylim_cur = ax.get_ylim()
-
-    if use_marker:
-        ax.set_prop_cycle(colorcycle + markercycle)
-    else:
-        ax.set_prop_cycle(colorcycle)
 
     phi_best_values = np.array(phi_best_values)
     phi_best_argsort = np.argsort(phi_best_values)
@@ -350,7 +335,7 @@ def plot_advanced(result_paths, exp_names, values, title, out_filename,
 
     for i, (exp_name, phi_best) in enumerate(zip(exp_names, phi_best_values)):
         ax.scatter(n_episodes_xlim*0.91 - n_episodes_xlim*0.02*(positions[i]<0),
-            phi_best, marker="*")
+            phi_best, color=colors[i], marker=markers[i])
         ax.text(n_episodes_xlim*(0.91-0.045) + n_episodes_xlim*0.055*positions[i],
             phi_best, f"{phi_best:.4f}", fontsize=8)
 
@@ -360,13 +345,6 @@ def plot_advanced(result_paths, exp_names, values, title, out_filename,
     ax.set_ylabel("Ф value")
 
     ax.legend(fontsize=legend_fontsize, labelspacing=0.23, loc='upper right')
-    handles, labels = ax.get_legend_handles_labels()
-    best_phi_label = f'best Ф value (averaged over {best_phi_avg_period} episodes)'
-    handles.append(
-        Line2D([0], [0], marker='*', linewidth=0, color='k', label=best_phi_label, markersize=7, markeredgewidth=0)
-    )
-    labels.append(best_phi_label)
-    ax.legend(handles, labels, labelspacing=0.23, loc='upper right')
     plt.savefig(out_filename, bbox_inches='tight')
     print(f"plot saved to {out_filename}")
     plt.close()
