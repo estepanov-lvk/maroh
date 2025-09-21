@@ -1,0 +1,51 @@
+hash_function: dte_stand.hash_function.WeightedDxHashFunction
+algorithm: dte_stand.algorithm.MateAlgorithm
+path_calculator: dte_stand.paths.DAGCalculator
+phi: dte_stand.phi_calculator.PhiCalculator.calculate_phi
+
+lsdb_period: 30000
+iterations: 1
+plot_period: 200
+
+log_path: ./experiment.log
+log_level: DEBUG
+
+debug_check_cycles: 0
+
+store_hashweights: 0
+store_nexthops: 0
+
+mate:
+  actor_cfg:
+    use_gat: False
+    use_memory: False
+
+  horizons: 100
+  episodes: 6000
+  gamma: 0.9
+  gae_lambda: 0.95
+  reward: phi
+  reward_computation: change
+  min_weight: 1.0
+  max_weight: 1.0
+  greedy_epsilon: 0.9
+  message_iterations: 2
+  lr_actor: 0.00015
+  lr_critic: 0.00085
+  n_without_update: 75
+  actions:
+    addition:
+      action: false
+      value: 1
+    subtraction:
+      action: false
+      value: 1
+    multiplication:
+      action: true
+      value: 1.25
+    division:
+      action: false
+      value: 1.2
+    zero:
+      action: true
+      value: 0
