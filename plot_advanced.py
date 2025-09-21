@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import scienceplots
 import json
-from collections import Counter, defaultdict
+from collections import defaultdict
 import os
 import re
 import glob

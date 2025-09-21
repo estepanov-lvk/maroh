@@ -43,6 +43,7 @@ objgraph==3.6.1
 opt-einsum==3.3.0
 optree==0.11.0
 packaging==23.2
+pandas==2.2.3
 Pillow==10.1.0
 protobuf==4.25.1
 psutil==5.9.8
