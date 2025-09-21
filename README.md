@@ -1,10 +1,16 @@
+# Installation
+
+This project was tested on Python 3.10.12. Install libraries for Python using `requirements.txt` file.
+
 # Input data format explanation
 
 ### command line arguments
 
-To run SAMAROH or SAMAROH-2L, run `python main.py dir --multi`, where dir is path to directory containing experiment input data (config.yaml, flows.json, topology.gml, topology_changes.json, logging.yaml files). config.yaml specifies whether to use SAMAROH or SAMAROH-2L in this case (use_memory: False or True).
-To run MAROH or MAROH-2L, run `python main.py dir`. config.yaml specifies whether to use MAROH or MAROH-2L in this case (use_memory: False or True).
-Directories with experiment input data can be found in data_examples directory. Specific topologies, flows and config.yaml parameters used for experiments for the paper can be found there too.
+To run SAMAROH or SAMAROH-2L, run `python main.py dir --multi`, where `dir` is path to directory containing experiment input data (config.yaml, flows.json, topology.gml, topology_changes.json, logging.yaml files). In this case, config.yaml specifies whether to run SAMAROH or SAMAROH-2L (`use_memory`: `False` or `True` respectively). A subdirectory with experiment's output will be created in `dir`.
+
+To run MAROH or MAROH-2L, run `python main.py dir`. In this case, config.yaml specifies whether to run MAROH or MAROH-2L (`use_memory`: `False` or `True` respectively).
+
+Directories with experiment input data can be found in data_examples directory. Specific topologies, flows and config.yaml parameters used for experiments for the paper can be found there as well.
 
 ### topology
 
@@ -12,7 +18,7 @@ Topology file is in gml format. Current examples are synthetic or taken from top
 
 ### topology_changes
 
-This file holds how topology changes over time in json format.  
+This file holds how topology changes over time in json format.
 Dict keys are moments of time in milliseconds when the change is detected. This means that if, for example, there are dict keys "10000" and "50000", then at any moment of time between 10000ms and 50000ms the topology has changes described by "10000" dict.  
 Inside the change dict are two lists. They describe which nodes and links are missing. Missing node automatically means that all its links are also missing. If both lists are empty, it means there are no changes to topology.
 
@@ -22,7 +28,7 @@ This json is a list of all flows present throughout the experiment. Each flow ha
 
 ### config.yaml
 
-This file holds config for the experiment input data located in the folder. Values explanation:  
+This file holds config for the experiment input data located in the directory. Values explanation:  
 **lsdb_period** - model time interval between algorithm iterations. Note: if topology change was detected, time between iterations may be shorter than period, but never longer  
 **plot_period** - plot phi graph each time this amount of episodes passes  
 **iterations** - amount of algorithm iterations  
@@ -59,13 +65,15 @@ This file contains logging config. Refer to standard python module "logging", fu
 
 # How to reproduce serial experiments from the paper (Tables 2-5)
 
-To reproduce Table 2 in paper (comparison of different trajectory lengths and optimizer step sizes on Abilene topology for SAMAROH and MAROH), run each command in `table_commands_abilene_traj_grid.txt` list N times (N = 6 was used in paper), and after the experiments finish (generating a new `exp_...` folder with results per each experimental run in `data_examples/grids/abilene_traj_grid`), run `python process_grid_exps.py abilene_traj` to generate tables with aggregated data in csv format.
+To reproduce Table 2 in paper (comparison of different trajectory lengths and optimizer step sizes on Abilene topology for SAMAROH and MAROH), run each command from `table_commands_abilene_traj_grid.txt` list N times (N = 6 was used in paper), and after the experiments finish (generating a new `exp_...` directory with results per each experimental run in `data_examples/grids/abilene_traj_grid`), run `python process_grid_exps.py abilene_traj` to generate tables with aggregated data in csv format.
 
-To reproduce Table 3 in paper (comparison of different thresholds on 4-node "rhombus" topology), run each command in `table_commands_rhombus_grid.txt` list N times (N = 6 was used in paper), and after the experiments finish, run `python process_grid_exps.py rhombus` to generate tables with aggregated data in csv format.
+To reproduce Table 3 in paper (comparison of different memory parameters on 4-node "rhombus" topology), run each command from `table_commands_rhombus_grid.txt` list N times (N = 6 was used in paper), and after the experiments finish, run `python process_grid_exps.py rhombus` to generate tables with aggregated data in csv format.
 
-To reproduce Table 4-5 in paper (comparison of different thresholds on Abilene topology), run each command in `table_commands_abilene_grid.txt` list N times (N = 6 was used in paper), and after the experiments finish, run `python process_grid_exps.py abilene` to generate tables with aggregated data in csv format.
+To reproduce Tables 4-5 in paper (comparison of different memory parameters on Abilene topology), run each command from `table_commands_abilene_grid.txt` list N times (N = 6 was used in paper), and after the experiments finish, run `python process_grid_exps.py abilene` to generate tables with aggregated data in csv format.
 
 Note that despite each command specifies a random seed value, result of each run of the same command will be different, because this value does not set seeds of TensorFlow's random number generators.
+
+Experiments for the paper were run on a machine with Intel(R) Xeon(R) CPU E5-2660 v4 @ 2.00GHz, 8 GB RAM, operation system Ubuntu 22.04.4 LTS. GPU was not used.
 
 # How to use genetic algorithm
 
@@ -75,6 +83,7 @@ Run `python optimalweights.py dir`, where dir is path to directory containing to
  - --ntrain: if value is not specified (so it is 1 by default), the resulting solution will be sub-optimal for the same random seed of hash function as used in MAROH. If value more than 1 specified, the algorithm will measure objective function of each solution as Ф averaged by multiple alternative random seeds of hash function (multiple tries of distributing flows using the same agent weights).
  - --ntest value specifies number of extra alternative random hash seeds on which Ф will be measured for best solution on each iteration, but not used for algorithm's decisions.
  - --nvalid value specifies number of extra alternative random hash seeds on which Ф will be measured on best solution after algorithm finishes.
+
 Note: Genetic algorithm can only provide solution for a static set of flows. If flows.json contain different bandwidths at different timestamps, specify --flowsperiod, --start, --end to make sure that genetic algorithm use only one specific set of flows from the file.
 
 # How to draw plots like in the paper
@@ -83,8 +92,8 @@ Run `python plot_advanced.py path_to_json`, where path_to_json is path to json f
 
 # Extension guide
 
-There are 3 replaceable components in the stand: hash function, hash-weights calculation algorithm and path calculator. They are located in corresponding folders inside the dte_stand folder.    
-Every folder has a base.py file which contains a base class for a component, and a dummy.py file which contains a simple example of component class's interfaces.  
+There are 3 replaceable components in the stand: hash function, hash-weights calculation algorithm and path calculator. They are located in corresponding directories inside the dte_stand directory.    
+Every directory has a base.py file which contains a base class for a component, and a dummy.py file which contains a simple example of component class's interfaces.  
 In order to create a new component implementation, you need to inherit from the base class and implement the one abstract function that exists in the base class.
 
 Note: interfaces are not final! any suggestions and fixes are welcome
@@ -105,13 +114,13 @@ This component calculates the list of available paths in the graph. Parameters: 
 
 # How to use generators
 
-Folder 'generator' contains classes that generate the list of flows from traffic matrices. Currently only one generator is implemented: uniform.
-Folder 'parsers' contains traffic matrix parsers for different datasets. Currently only one dataset is implemeted: sndlib's brain dataset
+'generator' directory contains classes that generate the list of flows from traffic matrices. Currently only one generator is implemented: uniform.
+'parsers' directory contains traffic matrix parsers for different datasets. Currently only one dataset is implemeted: sndlib's brain dataset
 
 file generate.py can be used to run the generator. To do so, dataset files should be unpacked into a separate folder. Any number of files from the dataset can be taken. Each file contains a single traffic matrix, so the more files are present, the more data points is available to generator, so generated input data will cover a longer experiment. Files taken from the dataset must be sequential.
 The following parameters can be set in generate.py:
  - generator parameters - refer to chosen generator's documentation in the code
- - input folder where dataset files are located
+ - input directory where dataset files are located
  - period between data points in the dataset. Refer to dataset description to get this value. Although from the generator's standpoint it is not required to set period according to dataset. If the dataset specifies 1 minute interval between data points, in code it is allowed to set it to any other value you want. The data will be interpreted according to the period you specified.
  - output file path
 
