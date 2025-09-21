@@ -1,0 +1,24 @@
+python main.py data_examples/grids/rhombus_grid/rh_nomem --multi --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_512_l2_0.007 --multi --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_512_l2_0.010 --multi --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_512_l2_0.015 --multi --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_512_l2_0.018 --multi --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_512_l1_0.01 --multi --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_512_l1_0.03 --multi --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_512_l1_0.04 --multi --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_512_l1_0.05 --multi --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_512_cosine_0.0000001 --multi --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_512_cosine_0.0000003 --multi --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_512_cosine_0.0000004 --multi --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_512_cosine_0.0000005 --multi --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_nonsa_nomem --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_nonsa_512_l2_0.007 --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_nonsa_512_l2_0.010 --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_nonsa_512_l2_0.015 --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_nonsa_512_l2_0.018 --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_nonsa_512_l2_0.025 --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_nonsa_512_l2_0.030 --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_nonsa_512_l2_0.040 --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_nonsa_512_l2_0.050 --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_nonsa_512_l2_0.060 --seed 0
+python main.py data_examples/grids/rhombus_grid/rh_nonsa_512_l2_0.070 --seed 0
