@@ -2,9 +2,19 @@
 
 ### command line arguments
 
-To run SAMAROH or SAMAROH-2L, run `main.py dir --multi`, where dir is path to directory containing experiment input data (config.yaml, flows.json, topology.gml, topology_changes.json, logging.yaml files). config.yaml specifies whether to use SAMAROH or SAMAROH-2L in this case (use_memory: False or True).
-To run MAROH or MAROH-2L, run `main.py dir`. config.yaml specifies whether to use MAROH or MAROH-2L in this case (use_memory: False or True).
+To run SAMAROH or SAMAROH-2L, run `python main.py dir --multi`, where dir is path to directory containing experiment input data (config.yaml, flows.json, topology.gml, topology_changes.json, logging.yaml files). config.yaml specifies whether to use SAMAROH or SAMAROH-2L in this case (use_memory: False or True).
+To run MAROH or MAROH-2L, run `python main.py dir`. config.yaml specifies whether to use MAROH or MAROH-2L in this case (use_memory: False or True).
 Directories with experiment input data can be found in data_examples directory. Specific topologies, flows and config.yaml parameters used for experiments for the article can be found there too.
+
+### reproducing serial experiments from the paper (Tables 2-5)
+
+To reproduce Table 2 in paper (comparison of different trajectory lengths and optimizer step sizes on Abilene topology for SAMAROH and MAROH), run each command in `table_commands_abilene_traj_grid.txt` list N times (N = 6 was used in paper), and after the experiments finish (generating a new `exp_...` folder with results per each experimental run in `data_examples/grids/abilene_traj_grid`), run `python process_grid_exps.py abilene_traj` to generate tables with aggregated data in csv format.
+
+To reproduce Table 3 in paper (comparison of different thresholds on 4-node "rhombus" topology), run each command in `table_commands_rhombus_grid.txt` list N times (N = 6 was used in paper), and after the experiments finish, run `python process_grid_exps.py rhombus` to generate tables with aggregated data in csv format.
+
+To reproduce Table 4-5 in paper (comparison of different thresholds on Abilene topology), run each command in `table_commands_abilene_grid.txt` list N times (N = 6 was used in paper), and after the experiments finish, run `python process_grid_exps.py abilene` to generate tables with aggregated data in csv format.
+
+Note that despite each command specifies a random seed value, result of each run of the same command will be different, because this value does not set seeds of TensorFlow's random number generators.
 
 ### topology
 
@@ -107,7 +117,7 @@ converter accept 2 parameters - path to original file and path where to save the
 
 # How to use genetic algorithm
 
-Run `optimalweights.py dir`, where dir is path to directory containing topology.gml and flows.json. It will find set of agent weights with sub-optimal Ф value.
+Run `python optimalweights.py dir`, where dir is path to directory containing topology.gml and flows.json. It will find set of agent weights with sub-optimal Ф value.
  - --iter - number of iterations of genetic algorithm. Increasing this may result to a solution closer to optimal but also a proportional increase in execution time.
  - --maxweight specifies maximum value of agent weight, while algorithm always assigns agent weights integer numbers between 1 and maxweight.
  - --ntrain: if value is not specified (so it is 1 by default), the resulting solution will be sub-optimal for the same random seed of hash function as used in MAROH. If value more than 1 specified, the algorithm will measure objective function of each solution as Ф averaged by multiple alternative random seeds of hash function (multiple tries of distributing flows using the same agent weights).
@@ -118,4 +128,4 @@ Note: Genetic algorithm can only provide solution for a static set of flows. If 
 
 # How to draw plots like in the article
 
-Run `plot_advanced.py path_to_json`, where path_to_json is path to json file containing list of experiment results directories and their names, plot title, (optionally) genetic algorithm result csv file. See plot_advanced_input_example.json for format example. For example, if you ran `main.py data_examples/topology ...`, experiment result directory path will be `data_examples/topology/exp_...`, which can be specified as "path" value in json file for plotting.
+Run `python plot_advanced.py path_to_json`, where path_to_json is path to json file containing list of experiment results directories and their names, plot title, (optionally) genetic algorithm result csv file. See plot_advanced_input_example.json for format example. For example, if you ran `python main.py data_examples/topology ...`, experiment result directory path will be `data_examples/topology/exp_...`, which can be specified as "path" value in json file for plotting.
