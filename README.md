@@ -79,12 +79,12 @@ Experiments for the paper were run on a machine with Intel(R) Xeon(R) CPU E5-266
 
 # How to use genetic algorithm
 
-Run `python optimalweights.py dir`, where dir is path to directory containing topology.gml and flows.json. It will find set of agent weights with sub-optimal Ф value.
+Run `python optimalweights.py dir`, where dir is path to directory containing topology.gml and flows.json. It will find set of agent weights with sub-optimal Φ value.
  - --iter - number of iterations of genetic algorithm. Increasing this may result to a solution closer to optimal but also a proportional increase in execution time.
  - --maxweight specifies maximum value of agent weight, while algorithm always assigns agent weights integer numbers between 1 and maxweight.
- - --ntrain: if value is not specified (so it is 1 by default), the resulting solution will be sub-optimal for the same random seed of hash function as used in MAROH. If value more than 1 specified, the algorithm will measure objective function of each solution as Ф averaged by multiple alternative random seeds of hash function (multiple tries of distributing flows using the same agent weights).
- - --ntest value specifies number of extra alternative random hash seeds on which Ф will be measured for best solution on each iteration, but not used for algorithm's decisions.
- - --nvalid value specifies number of extra alternative random hash seeds on which Ф will be measured on best solution after algorithm finishes.
+ - --ntrain: if value is not specified (so it is set to 1 by default), algorithm will search for an optimal solution for the same random seed of hash function as used in MAROH. If value higher than 1 is specified, the algorithm will measure objective function of each solution as Φ averaged by multiple alternative random seeds of hash function (multiple tries of distributing flows using the same agent weights).
+ - --ntest value specifies number of extra alternative random hash seeds on which Φ will be measured for best solution on each iteration, but not used for algorithm's decisions.
+ - --nvalid value specifies number of extra alternative random hash seeds on which Φ will be measured on best solution after algorithm finishes.
 
 Note: Genetic algorithm can only provide solution for a static set of flows. If flows.json contain different bandwidths at different timestamps, specify --flowsperiod, --start, --end to make sure that genetic algorithm use only one specific set of flows from the file.
 
