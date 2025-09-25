@@ -2,17 +2,17 @@ import argparse
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 import scienceplots
 import json
 from collections import defaultdict
 import os
 import re
-import glob
 import pandas as pd
-import pathlib
 from pathlib import Path
 from datetime import datetime
+import pandas as pd
+import textwrap
+from math import ceil
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Advanced plotting')
@@ -27,14 +27,10 @@ def parse_args():
 
     return parser.parse_args()
 
-# plt.rcParams.update({'font.size': 9})
-
 class ResultFolder:
     def __init__(self, path, parameter_name='phi_values'):
         self._folder_path = path
-        # self._results = defaultdict(lambda: [])
         self._results = None
-        self._results2 = []
         self._max_episode = 0
         self._parameter_name = parameter_name
         self._parse_folder()
@@ -78,108 +74,7 @@ class ResultFolder:
                 # print(f'parsed file {file.name}')
         print(f'parsed folder {cur_path}')
 
-    def _parse_file2(self, file_obj):
-        data_list = json.load(file_obj)
-        for run_data in data_list:
-            self._results2.append(run_data[0])
-
-    def _parse_folder2(self, path=None):
-        cur_path = path if path else self._folder_path
-        with os.scandir(cur_path) as files:
-            for file in files:
-                if not file.is_file():
-                    continue
-                match = re.search('avg.json', file.name)
-                if not match:
-                    continue
-                with open(file.path, 'r') as f:
-                    self._parse_file2(f)
-                print(f'parsed file {file.name}')
-
-    def _plot(self, values: list, start: int, end: int, amount: int, x_name: str, filename: str):
-        plt.rcParams.update({'font.size': 22})
-        # plt.rc('xtick', labelsize=14)
-
-        np_phi_values = np.array(values)
-        np_linear = np.linspace(start, end, amount)
-        pixel = 1/plt.rcParams['figure.dpi']
-        figure, ax = plt.subplots(figsize=(1200*pixel, 800*pixel))
-        ax.plot(np_linear, np_phi_values, label='phi')
-        ax.set_xlabel(x_name)
-        ax.set_ylabel(self._parameter_name)
-        # ax.legend()
-        # plt.ylim(0.01, 0.25)
-        # plt.yticks([0.02, 0.022, 0.024, 0.026, ])
-        plt.savefig(os.path.join(self._folder_path, filename), bbox_inches='tight')
-        plt.close()
-
-    def _boxplot(self, values: list, episodes_per_matrix: int, x_name: str, filename: str):
-        box_values = []
-        for matrix_num in range(0, len(values) // episodes_per_matrix):
-            box_values.append(np.array(values[matrix_num * episodes_per_matrix:(matrix_num + 1) * episodes_per_matrix]))
-        np_phi_values = np.transpose(np.array(box_values))
-        pixel = 1/plt.rcParams['figure.dpi']
-        figure, ax = plt.subplots(figsize=(1900*pixel, 800*pixel))
-        ax.boxplot(np_phi_values)
-        # ax.set_xlabel(x_name)
-        # ax.set_ylabel('phi value')
-        # ax.legend()
-        plt.savefig(os.path.join(self._folder_path, filename), bbox_inches='tight')
-        plt.close()
-
-    def prepare_phi_values(self, max_episode=None):
-        if max_episode:
-            self._max_episode = max_episode
-
-        # phi_values = [min(self._results[episode]) for episode in range(max_episode)]
-        phi_values = [self._results[episode][-1] for episode in range(self._max_episode)]
-
-        return phi_values
-
-    def prepare_averaged_phi_values(self):
-        # max_episode = min(self._max_episode, 1000)
-        # phi_values = [min(self._results[episode]) for episode in range(max_episode)]
-        plot_period = 5
-
-        phi_values = [self._results[episode][-1] for episode in range(self._max_episode)]
-
-        averaged_values = []
-        number_of_points = (len(phi_values) // plot_period)
-        if len(phi_values) % plot_period != 0:
-            number_of_points += 1
-
-        for i in range(number_of_points):
-            start = i * plot_period
-            end = min((i + 1) * plot_period, len(phi_values))
-            averaged_values.append(sum(phi_values[start:end]) / (end - start))
-
-        return averaged_values
-
-    def plot_average_and_full(self, plot_period, parameter_name='phi_values', max_episode=None):
-        if max_episode:
-            self._max_episode = max_episode
-
-        # phi_values = [min(self._results[episode]) for episode in range(self._max_episode)]
-        phi_values = [self._results[episode][-1] for episode in range(self._max_episode)]
-
-        averaged_values = []
-        number_of_points = (len(phi_values) // plot_period)
-        if len(phi_values) % plot_period != 0:
-            number_of_points += 1
-
-        for i in range(number_of_points):
-            start = i * plot_period
-            end = min((i + 1) * plot_period, len(phi_values))
-            averaged_values.append(sum(phi_values[start:end]) / (end - start))
-
-        # full graph
-        self._plot(phi_values, 0, len(phi_values) - 1, len(phi_values), 'episode', f'{self._parameter_name}_0-{len(phi_values)}.png')
-
-        # averaged graph
-        self._plot(averaged_values, 0, len(averaged_values) - 1, len(averaged_values),
-                   f'episode batch ({plot_period} per batch)', f'{self._parameter_name}_averaged_full.png')
-
-def get_averaged_values(values, plot_period=5):
+def get_averaged_values(values, plot_period):
     averaged_values = []
     number_of_points = (len(values) // plot_period)
     if len(values) % plot_period != 0:
@@ -192,7 +87,7 @@ def get_averaged_values(values, plot_period=5):
 
     return averaged_values
 
-def get_minmax_values(values, plot_period=5):
+def get_minmax_values(values, plot_period):
     min_values = []
     max_values = []
     number_of_points = (len(values) // plot_period)
@@ -231,9 +126,9 @@ def get_config_value(exp_dir, key):
                     continue
     return None
 
-def plot_advanced(result_paths, exp_names, values, title, out_filename,
+def plot_advanced_avg(result_paths, exp_names, values, title, out_filename,
     first_values=None, update_period={}, df_genetic=None, ylim=(None, None), n_episodes='max',
-    plot_period=3000, best_phi_avg_period=2000):
+    plot_period=None, best_phi_avg_period=2000):
     title_fontsize = 10
     legend_fontsize = 9
 
@@ -260,16 +155,18 @@ def plot_advanced(result_paths, exp_names, values, title, out_filename,
         n_episodes_display = min([len(values[i][params[0]]) for i in range(len(exp_names))])
     else:
         n_episodes_display = n_episodes
+
+    if plot_period is None:
+        plot_period = ceil(n_episodes_display / 5)
+
     n_episodes_xlim = round(n_episodes_display*1.28/500)*500
     if n_episodes_display < best_phi_avg_period:
         best_phi_avg_period = n_episodes_display // 5
 
     phi_best_values = []
     for i, exp_name in enumerate(exp_names):
-        title = f"{exp_name}"
         y_orig = np.array(values[i][params[0]])
         y_orig = y_orig[:n_episodes_display]
-        xshift = (plot_period * i / len(exp_names) - plot_period * (len(exp_names)-1) / len(exp_names)) * 0.3
         phi_best = get_best_phi(y_orig, best_phi_avg_period)
         phi_best_values.append(phi_best)
         val1 = np.array(values[i]['message_iterations_done'])
@@ -287,19 +184,13 @@ def plot_advanced(result_paths, exp_names, values, title, out_filename,
         if avg_msg_load == 1.0:
             avg_msg_load_str = ""
         else:
-            avg_msg_load_str = f" (comm: {avg_msg_load*100:.1f}%)"
+            avg_msg_load_str = f": share of remaining exchanges = {avg_msg_load*100:.1f}%"
 
         y = np.array(get_averaged_values(y_orig, plot_period))
-        ymin, ymax = get_minmax_values(y_orig, plot_period)
-        ymin = np.array(ymin)
-        ymax = np.array(ymax)
-        x = np.arange(0, plot_period*(len(y)+2), plot_period)[1:len(y)+1]
-        alpha = 0.1 if len(exp_names) <= 2 else 0.07
-        ax.errorbar(x+xshift, y, yerr=np.vstack((y - ymin, ymax - y)),
-                    marker=markers[i], color=colors[i],
-                    linewidth=1.33, label=f"{exp_name}{avg_msg_load_str}")
-        ax.plot(x+xshift, ymin, linestyle='dotted', color=colors[i], marker=markers[i], ms=5)
-        ax.plot(x+xshift, ymax, linestyle='dotted', color=colors[i], marker=markers[i], ms=5)
+        x = np.arange(0, plot_period*(len(y)+2), plot_period)[1:len(y)]
+        x = np.concatenate((x, [len(y_orig)]))
+        ax.plot(x, y, marker=markers[i], color=colors[i], linewidth=1.0,
+                label=f"{exp_name}{avg_msg_load_str}")
 
     ax.set_xlim(0, n_episodes_xlim)
     xlim = ax.get_xlim()
@@ -308,13 +199,11 @@ def plot_advanced(result_paths, exp_names, values, title, out_filename,
 
     if first_values is not None:
         phi_eqw = first_values[0]["phi_values"][0]
-        ax.hlines(phi_eqw, xlim[0], xlim[1], color='gray', linestyle='--', label="equal weights")
-        ax.scatter(n_episodes_display*0.05, phi_eqw, marker="*", color='gray')
-        ax.text(n_episodes_display*0.06, phi_eqw + height_cur*0.01, f"{phi_eqw:.4f}", fontsize=8)
+        ax.hlines(phi_eqw, xlim[0], xlim[1], color='gray', linestyle='--', label="ECMP")
+        ax.text(n_episodes_display*0.04, phi_eqw + height_cur*0.015, f"{phi_eqw:.4f}", fontsize=8)
     if phi_ga is not None:
-        ax.hlines(phi_ga, xlim[0], xlim[1], color='darkolivegreen', linestyle='-', label="genetic algorithm")
-        ax.scatter(n_episodes_display*0.05, phi_ga, marker="*", color='darkolivegreen')
-        ax.text(n_episodes_display*0.06, phi_ga + height_cur*0.01, f"{phi_ga:.4f}", fontsize=8)
+        ax.hlines(phi_ga, xlim[0], xlim[1], color='darkolivegreen', linestyle='-', label="centralized genetic algorithm")
+        ax.text(n_episodes_display*0.04, phi_ga + height_cur*0.015, f"{phi_ga:.4f}", fontsize=8)
 
     if ylim != (None, None):
         ax.set_ylim(*ylim)
@@ -327,11 +216,11 @@ def plot_advanced(result_paths, exp_names, values, title, out_filename,
     height_cur = ylim_cur[1] - ylim_cur[0]
 
     phi_best_values = np.array(phi_best_values)
-    phi_best_argsort = np.argsort(phi_best_values)
+    phi_best_argsort = np.argsort(-phi_best_values)
     phi_best_values_sort = phi_best_values[phi_best_argsort]
     positions = []
-    cur_pos = 1
-    text_y_thres = 0.024
+    cur_pos = -1
+    text_y_thres = 0.044
     for i, phi_best in enumerate(phi_best_values_sort):
         if i > 0 and (phi_best - phi_best_values_sort[i-1]) / height_cur < text_y_thres:
             cur_pos = -cur_pos
@@ -344,15 +233,158 @@ def plot_advanced(result_paths, exp_names, values, title, out_filename,
             phi_best, color=colors[i], marker=markers[i])
         ax.text(n_episodes_xlim*(0.91-0.045) + n_episodes_xlim*0.055*positions[i],
             phi_best, f"{phi_best:.4f}", fontsize=8)
+    ax.text(n_episodes_xlim*(0.91-0.045) - n_episodes_xlim*0.055,
+            max(phi_best_values) + height_cur * 0.1, "Best averaged:", fontsize=9)
 
     title_full = f"{title} (display batch = {plot_period} episodes)"
     ax.set_title(title_full, fontsize=title_fontsize)
     ax.set_xlabel("episode")
     ax.set_ylabel("Ф value")
 
+    xticks = set(range(0, n_episodes_display, plot_period))
+    xticks.add(n_episodes_display)
+    ax.set_xticks(sorted(xticks))
+    ax.xaxis.set_minor_locator(plt.MultipleLocator(1000))
+
     ax.legend(fontsize=legend_fontsize, labelspacing=0.23, loc='upper right')
     plt.savefig(out_filename, bbox_inches='tight')
-    print(f"plot saved to {out_filename}")
+    print(f"plot with average value lines saved to {out_filename}")
+    plt.close()
+
+def plot_advanced_avgminmax(result_paths, exp_names, values, title, out_filename,
+    first_values=None, update_period={}, df_genetic=None, ylim=(None, None), n_episodes='max',
+    plot_period=None, best_phi_avg_period=2000, write_exchanges_percent=False):
+    title_fontsize = 10
+    legend_fontsize = 9
+
+    plt.style.use(["science", "grid"])
+    matplotlib.rcParams['text.usetex'] = False
+
+    markers = ['x', '.', 'v', '^', 'd']
+    colors = (matplotlib.rcParams['axes.prop_cycle'].by_key()['color'] * 4)[:len(markers)]
+
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(160/23, 4), dpi=300)
+
+    phi_ga = None
+    if df_genetic is not None:
+        try:
+            df_on_train = df_genetic[(df_genetic.hash_funcs_set == "train") &
+                                     (df_genetic.iteration >= 0)]
+            phi_ga = df_on_train[df_on_train["iteration"] == df_on_train["iteration"].max()]["phi_min"].iloc[0]
+        except Exception as e:
+            print(f"ERROR plotting genetic algorithm result: {e}")
+
+    if n_episodes == 'max':
+        n_episodes_display = max([len(values[i][params[0]]) for i in range(len(exp_names))])
+    elif n_episodes == 'min':
+        n_episodes_display = min([len(values[i][params[0]]) for i in range(len(exp_names))])
+    else:
+        n_episodes_display = n_episodes
+
+    if plot_period is None:
+        plot_period = ceil(n_episodes_display / 5)
+
+    n_episodes_xlim = round(n_episodes_display*1.28/500)*500
+    if n_episodes_display < best_phi_avg_period:
+        best_phi_avg_period = n_episodes_display // 5
+
+    figsize_height_fix = 0.865
+    fig, axes = plt.subplots(nrows=1, ncols=len(exp_names),
+                             figsize=(160/23, 4*figsize_height_fix),
+                             sharey=True, dpi=300)
+    plt.subplots_adjust(wspace=0.1)
+
+    if first_values is not None:
+        phi_eqw = first_values[0]["phi_values"][0]
+
+    ylim_cur = axes[0].get_ylim()
+    height_cur = ylim_cur[1] - ylim_cur[0]
+    for ax in axes:
+        ax.set_xlim(0, n_episodes_xlim)
+        xlim = ax.get_xlim()
+        if first_values is not None:
+            ax.hlines(phi_eqw, xlim[0], xlim[1], color='gray',
+                      linestyle='--', linewidth=1.1, label="ECMP")
+        if phi_ga is not None:
+            ax.hlines(phi_ga, xlim[0], xlim[1], color='darkolivegreen',
+                      linestyle='-', linewidth=0.8, label="centralized genetic algorithm")
+
+    phi_best_values = []
+    xticks = []
+    title_full = f"{title} (display batch = {plot_period} episodes)"
+    for i, exp_name in enumerate(exp_names):
+        y_orig = np.array(values[i][params[0]])
+        y_orig = y_orig[:n_episodes_display]
+        phi_best = get_best_phi(y_orig, best_phi_avg_period)
+        phi_best_values.append(phi_best)
+
+        if write_exchanges_percent:
+            val1 = np.array(values[i]['message_iterations_done'])
+            val2 = np.array(values[i]['message_iterations_possible'])
+            upd_n = update_period[i]
+            if np.sum(val2) != 0:
+                val1d = np.concatenate(([val1[0]], val1[1:] - val1[:-1]))
+                val2d = np.concatenate(([val2[0]], val2[1:] - val2[:-1]))
+                val1d = np.array([np.sum(val1d[j*upd_n:(j+1)*upd_n]) for j in range(len(val1d)//upd_n)])
+                val2d = np.array([np.sum(val2d[j*upd_n:(j+1)*upd_n]) for j in range(len(val2d)//upd_n)])
+                msg_ratio = val1d / val2d
+            else:
+                msg_ratio = np.ones(len(val1)//upd_n).astype('float')
+            avg_msg_load = np.mean(msg_ratio)
+            if avg_msg_load == 1.0:
+                avg_msg_load_str = ""
+            else:
+                avg_msg_load_str = f": share of remaining exchanges = {avg_msg_load*100:.1f}%"
+        else:
+            avg_msg_load_str = ""
+
+        y = np.array(get_averaged_values(y_orig, plot_period))
+        ymin, ymax = get_minmax_values(y_orig, plot_period)
+        ymin = np.array(ymin)
+        ymax = np.array(ymax)
+        x = np.arange(0, plot_period*(len(y)+2), plot_period)[1:len(y)]
+        x = np.concatenate((x, [len(y_orig)]))
+        xticks.append(x)
+        axes[i].errorbar(x, y, yerr=np.vstack((y - ymin, ymax - y)),
+                         marker=markers[i], color=colors[i],
+                         capsize=3, linewidth=1.33,
+                         markeredgewidth=1.2,
+                         label=f"{exp_name}{avg_msg_load_str}")
+
+        ax_title = textwrap.fill(f"{exp_name}{avg_msg_load_str}", 20, break_long_words=False)
+        axes[i].set_title(ax_title, fontsize=title_fontsize)
+        axes[i].set_xlabel("episode")
+        xticks_sort = np.sort(x)
+        axes[i].set_xticks(xticks_sort)
+        axes[i].xaxis.set_minor_locator(plt.MultipleLocator(1000))
+        if np.min(xticks_sort[1:] - xticks_sort[:-1]) >= plot_period * 0.85:
+            rotation = 30
+        else:
+            rotation = 60
+        axes[i].tick_params(axis='x', labelsize=8, rotation=rotation)
+
+    ylim_cur = axes[0].get_ylim()
+    height_cur = ylim_cur[1] - ylim_cur[0]
+
+    if ylim != (None, None):
+        axes[0].set_ylim(*ylim)
+    ylim_cur = axes[0].get_ylim()
+    height_cur = ylim_cur[1] - ylim_cur[0]
+
+    if first_values is not None:
+        axes[0].text(xlim[1] * (1-0.02), phi_eqw + height_cur * 0.015, "ECMP",
+                horizontalalignment='right', fontsize=7)
+    if phi_ga is not None:
+        axes[0].text(xlim[1] * (1-0.02), phi_ga + height_cur * 0.015, "gen.\nalg.",
+                horizontalalignment='right', fontsize=7)
+
+    title_full = f"{title} (display batch = {plot_period} episodes)"
+    axes[0].set_ylabel("Ф value")
+
+    fig.suptitle(title_full, y=1.15 if write_exchanges_percent else 1.1,
+                 fontsize=title_fontsize)
+    plt.savefig(out_filename, bbox_inches='tight')
+    print(f"plot with min-max ranges saved to {out_filename}")
     plt.close()
 
 if __name__ == "__main__":
@@ -381,7 +413,6 @@ if __name__ == "__main__":
     folders = defaultdict(dict)
     values = defaultdict(dict)
     first_values = defaultdict(dict)
-    # values_averaged = defaultdict(dict)
     update_period = {}
     for i, result_path in enumerate(result_paths):
         update_period[i] = 1
@@ -404,20 +435,16 @@ if __name__ == "__main__":
                 max_episode = len(res)
                 values[i][param] = [res[episode][-1] for episode in range(0, max_episode)]
                 first_values[i][param] = [res[episode][0] for episode in range(0, max_episode)]
-                # values_averaged[i][param] = get_averaged_values(values[i][param])
             elif param == "messages":
                 for subparam, res_subparam in res.items():
                     max_episode = len(res_subparam)
                     values[i][subparam] = [res_subparam[episode] for episode in range(0, max_episode)]
-                    # values_averaged[i][subparam] = get_averaged_values(values[i][subparam])
             elif param in ["messages_infer", "messages_train"]:
                 for subparam, res_subparam in res.items():
                     max_episode = len(res_subparam)
                     values[i][subparam] = [res_subparam[episode] for episode in range(0, max_episode)]
-                    # values_averaged[i][subparam] = get_averaged_values(values[i][subparam])
             else:
                 values[i][param] = [res[episode] for episode in range(0, max_episode)]
-                # values_averaged[i][param] = get_averaged_values(values[i][param])
 
     # phi0 = first_values[0]["phi_values"][0]
     # for episode in range(len(first_values)):
@@ -432,6 +459,10 @@ if __name__ == "__main__":
     ymin = args.ymin
     ymax = args.ymax
     dat_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S.%f')[:-3]
-    out_filename = f"{args.experiments_list.stem}_{dat_str}.png"
-    plot_advanced(result_paths, exp_names, values, title, out_filename=out_filename, first_values=first_values,
+    out_filename_avg = f"{args.experiments_list.stem}_avg_{dat_str}.png"
+    out_filename_avgminmax = f"{args.experiments_list.stem}_avgminmax_{dat_str}.png"
+    plot_advanced_avg(result_paths, exp_names, values, title, out_filename=out_filename_avg, first_values=first_values,
         update_period=update_period, df_genetic=df_genetic, n_episodes=n_episodes, ylim=(ymin, ymax))
+    plot_advanced_avgminmax(result_paths, exp_names, values, title, out_filename=out_filename_avgminmax, first_values=first_values,
+        update_period=update_period, df_genetic=df_genetic, n_episodes=n_episodes, ylim=(ymin, ymax),
+        write_exchanges_percent=False)

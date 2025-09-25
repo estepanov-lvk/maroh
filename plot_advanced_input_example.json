@@ -7,7 +7,7 @@
 "name": "MAROH"}
 ,
 {"path": "data_experiments_output/abilene/exp_samaroh_2l_1024_0.035_l2_minibatchkmeans_flows40",
-"name": "SAMAROH-2L, mem_size=1024, thres=0.035 (L2)"}
+"name": "SAMAROH-2L (threshold=0.035)"}
 ,
 {"path": "data_experiments_output/abilene/exp_samaroh_flows40",
 "name": "SAMAROH"}
